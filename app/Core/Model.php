@@ -47,4 +47,41 @@ abstract class Model {
 
         return null;
     }
+    public function update(mysqli $conn): bool {
+    $data = get_object_vars($this);
+    $id = $data[static::$primaryKey];
+    unset($data[static::$primaryKey]); // don't update the ID itself
+
+    $columns = array_keys($data);
+    $setClause = implode(', ', array_map(fn($col) => "$col = ?", $columns));
+    $types = str_repeat('s', count($columns));
+    $values = array_values($data);
+    $values[] = $id;
+
+    $sql = sprintf(
+        "UPDATE %s SET %s WHERE %s = ?",
+        static::$table,
+        $setClause,
+        static::$primaryKey
+    );
+
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param($types . 'i', ...$values);
+    return $stmt->execute();
+}
+public function delete(mysqli $conn): bool {
+    $id = $this->{static::$primaryKey};
+
+    $sql = sprintf(
+        "DELETE FROM %s WHERE %s = ?",
+        static::$table,
+        static::$primaryKey
+    );
+
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param('i', $id);
+
+    return $stmt->execute();
+}
+
 }
